@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Dosage Book</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1f2e24;
+    --ink-deep:#16211a;
+    --paper:#f2ecdc;
+    --paper-dim:#cfc7ac;
+    --amber:#c08a3e;
+    --amber-bright:#e0ab5c;
+    --coral:#c1665b;
+    --sage:#7c8f6f;
+    --line: rgba(242,236,220,0.14);
+    --card-bg: rgba(255,255,255,0.02);
+    --card-bg-2: rgba(0,0,0,0.15);
+  }
+  body.light{
+    --ink:#f2ecdc;
+    --ink-deep:#e4dcc2;
+    --paper:#26301f;
+    --paper-dim:#5c6650;
+    --amber:#a9752c;
+    --amber-bright:#8a5e20;
+    --coral:#a84f45;
+    --sage:#5c7050;
+    --line: rgba(38,48,31,0.14);
+    --card-bg: rgba(0,0,0,0.03);
+    --card-bg-2: rgba(0,0,0,0.05);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%, rgba(224,171,92,0.08), transparent 45%),
+      radial-gradient(circle at 90% 10%, rgba(124,143,111,0.10), transparent 40%),
+      var(--ink);
+    color:var(--paper);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:96px;
+    transition:background .25s, color .25s;
+  }
+  .wrap{max-width:640px; margin:0 auto; padding:28px 20px 10px;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  /* header */
+  header{text-align:center; margin-bottom:26px;}
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--amber-bright); margin-bottom:10px;
+  }
+  h1{
+    font-family:'Fraunces', serif; font-weight:600; font-size:2.3rem;
+    margin:0 0 6px; letter-spacing:-0.01em;
+  }
+  .date-line{
+    font-size:13px; color:var(--paper-dim); font-family:'JetBrains Mono',monospace;
+  }
+  .sync-line{
+    font-size:11px; color:var(--sage); font-family:'JetBrains Mono',monospace; margin-top:4px;
+    letter-spacing:.04em;
+  }
+  .missed-card{
+    border:1px solid var(--coral); border-radius:14px; padding:18px 20px;
+    margin-bottom:24px; background:rgba(193,102,91,0.08);
+  }
+  .missed-card.clean{border-color:var(--sage); background:rgba(124,143,111,0.08);}
+  .missed-card h3{font-family:'Fraunces',serif; font-size:1.05rem; margin:0 0 4px;}
+  .missed-card .range{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--paper-dim); margin-bottom:10px;}
+  .missed-list{display:flex; flex-wrap:wrap; gap:6px;}
+  .missed-chip{
+    font-size:12px; padding:5px 10px; border-radius:20px;
+    background:rgba(193,102,91,0.18); color:var(--coral); border:1px solid var(--coral);
+  }
+
+  /* pinned meal card */
+  .meal-card{
+    border:1px solid var(--amber);
+    border-radius:14px;
+    padding:18px 20px;
+    margin-bottom:34px;
+    background:linear-gradient(160deg, rgba(224,171,92,0.09), rgba(224,171,92,0.02));
+    position:relative;
+  }
+  .meal-card .pin{
+    position:absolute; top:-11px; left:20px;
+    background:var(--amber); color:var(--ink-deep);
+    font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.14em;
+    text-transform:uppercase; padding:3px 10px; border-radius:20px; font-weight:700;
+  }
+  .meal-card h2{
+    font-family:'Fraunces',serif; font-weight:500; font-style:italic;
+    font-size:1.3rem; margin:6px 0 2px;
+  }
+  .meal-card .sub{color:var(--paper-dim); font-size:13px; margin-bottom:14px;}
+  .meal-ticks{display:flex; gap:10px; flex-wrap:wrap;}
+  .meal-tick{
+    flex:1; min-width:96px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 8px;
+    text-align:center;
+    cursor:pointer;
+    background:var(--card-bg-2);
+    transition:.18s;
+    user-select:none;
+  }
+  .meal-tick .label{font-size:12px; color:var(--paper-dim); margin-bottom:4px;}
+  .meal-tick .stamp{font-size:18px;}
+  .meal-tick.done{
+    background:rgba(192,138,62,0.18);
+    border-color:var(--amber);
+  }
+  .meal-tick.done .label{color:var(--amber-bright);}
+
+  /* time sections */
+  .slot-section{margin-bottom:30px;}
+  .slot-heading{
+    display:flex; align-items:baseline; gap:10px; margin-bottom:12px;
+    border-bottom:1px solid var(--line); padding-bottom:8px;
+  }
+  .slot-heading h3{
+    font-family:'Fraunces',serif; font-weight:600; font-size:1.15rem; margin:0;
+  }
+  .slot-heading .now-badge{
+    font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--coral); border:1px solid var(--coral);
+    padding:2px 8px; border-radius:20px;
+  }
+
+  .med-card{
+    display:flex; align-items:center; gap:14px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px 16px;
+    margin-bottom:10px;
+    background:var(--card-bg);
+    transition:.18s;
+  }
+  .med-card.done{background:rgba(124,143,111,0.14); border-color:var(--sage);}
+  .med-card.upcoming{opacity:.5;}
+
+  .med-info{flex:1; min-width:0;}
+  .med-name{font-family:'Fraunces',serif; font-size:1.05rem; font-weight:600;}
+  .med-potency{color:var(--amber-bright); font-family:'JetBrains Mono',monospace; font-size:12px; margin-left:6px;}
+  .med-dose{font-size:13px; color:var(--paper-dim); margin-top:3px;}
+  .med-note{font-size:11.5px; color:var(--sage); margin-top:4px; font-family:'JetBrains Mono',monospace;}
+
+  .stamp-btn{
+    flex-shrink:0;
+    width:52px; height:52px;
+    border-radius:50%;
+    border:2px solid var(--amber);
+    background:transparent;
+    color:var(--amber-bright);
+    font-size:20px;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .18s, background .18s;
+  }
+  .stamp-btn:active{transform:scale(0.88) rotate(-8deg);}
+  .stamp-btn.done{
+    background:var(--amber);
+    color:var(--ink-deep);
+    transform:rotate(-8deg);
+  }
+  .stamp-btn.upcoming{
+    border-color:var(--paper-dim);
+    color:var(--paper-dim);
+    cursor:default;
+  }
+
+  footer{
+    text-align:center; margin-top:36px;
+    font-family:'JetBrains Mono',monospace; font-size:11px;
+    color:var(--paper-dim); letter-spacing:.06em;
+  }
+
+  /* bottom nav */
+  .bottom-nav{
+    position:fixed; bottom:0; left:0; right:0;
+    display:flex; justify-content:center;
+    background:var(--ink-deep);
+    border-top:1px solid var(--line);
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    z-index:50;
+  }
+  .bottom-nav-inner{display:flex; gap:6px; max-width:640px; width:100%;}
+  .nav-btn{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+    background:none; border:none; cursor:pointer; padding:6px 4px;
+    color:var(--paper-dim); font-family:'Inter',sans-serif; font-size:11px;
+    letter-spacing:.02em;
+  }
+  .nav-btn .dot{
+    width:7px; height:7px; border-radius:50%;
+    background:transparent; border:1.5px solid var(--paper-dim);
+    transition:.2s;
+  }
+  .nav-btn.active{color:var(--amber-bright);}
+  .nav-btn.active .dot{background:var(--amber); border-color:var(--amber);}
+
+  /* section heading (shared) */
+  .page-title{
+    font-family:'Fraunces',serif; font-weight:600; font-size:1.7rem; margin:0 0 4px;
+  }
+  .page-sub{color:var(--paper-dim); font-size:13px; margin-bottom:24px;}
+
+  /* course progress */
+  .course-card{
+    border:1px solid var(--line); border-radius:14px; padding:18px 20px;
+    margin-bottom:24px; background:var(--card-bg);
+  }
+  .course-card h3{font-family:'Fraunces',serif; font-size:1.1rem; margin:0 0 4px;}
+  .course-card .range{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--paper-dim); margin-bottom:14px;}
+  .progress-track{
+    height:10px; border-radius:6px; background:var(--card-bg-2); overflow:hidden; margin-bottom:6px;
+  }
+  .progress-fill{height:100%; background:linear-gradient(90deg, var(--sage), var(--amber)); border-radius:6px; transition:width .3s;}
+  .progress-label{display:flex; justify-content:space-between; font-size:12px; color:var(--paper-dim); font-family:'JetBrains Mono',monospace;}
+
+  /* medicine bars */
+  .bar-row{margin-bottom:16px;}
+  .bar-row-top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;}
+  .bar-row-name{font-family:'Fraunces',serif; font-size:.98rem;}
+  .bar-row-count{font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--paper-dim);}
+  .bar-track{height:8px; border-radius:5px; background:var(--card-bg-2); overflow:hidden;}
+  .bar-fill{height:100%; border-radius:5px; background:var(--amber); transition:width .3s;}
+
+  /* export button */
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    border:1px solid var(--amber); color:var(--amber-bright);
+    background:transparent; border-radius:10px; padding:11px 18px;
+    font-family:'Inter',sans-serif; font-size:13.5px; font-weight:600;
+    cursor:pointer; transition:.18s;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn.full{width:100%; justify-content:center;}
+
+  /* history table */
+  .history-list{margin-top:24px;}
+  .history-day{
+    border-bottom:1px solid var(--line); padding:12px 0;
+  }
+  .history-day .h-date{
+    font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--amber-bright); margin-bottom:6px;
+  }
+  .history-day .h-meds{display:flex; flex-wrap:wrap; gap:6px;}
+  .h-chip{
+    font-size:11.5px; padding:4px 9px; border-radius:20px;
+    background:var(--card-bg-2); color:var(--paper-dim); border:1px solid var(--line);
+  }
+  .h-chip.taken{color:var(--amber-bright); border-color:var(--amber);}
+  .empty-note{color:var(--paper-dim); font-size:13px; text-align:center; padding:30px 0;}
+
+  /* settings */
+  .setting-row{
+    display:flex; align-items:center; justify-content:space-between;
+    border:1px solid var(--line); border-radius:12px; padding:16px 18px;
+    margin-bottom:14px; background:var(--card-bg);
+  }
+  .setting-row .s-label{font-family:'Fraunces',serif; font-size:1rem;}
+  .setting-row .s-sub{font-size:12px; color:var(--paper-dim); margin-top:2px;}
+  .switch{
+    position:relative; width:50px; height:28px; flex-shrink:0;
+  }
+  .switch input{opacity:0; width:0; height:0;}
+  .switch-track{
+    position:absolute; inset:0; background:var(--card-bg-2); border:1px solid var(--line);
+    border-radius:20px; cursor:pointer; transition:.2s;
+  }
+  .switch-track::before{
+    content:''; position:absolute; width:20px; height:20px; left:3px; top:2px;
+    background:var(--paper-dim); border-radius:50%; transition:.2s;
+  }
+  .switch input:checked + .switch-track{background:rgba(192,138,62,0.25); border-color:var(--amber);}
+  .switch input:checked + .switch-track::before{transform:translateX(21px); background:var(--amber);}
+  .info-card{
+    border:1px dashed var(--line); border-radius:12px; padding:16px 18px;
+    color:var(--paper-dim); font-size:12.5px; line-height:1.6;
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- TODAY TAB -->
+  <div class="tab-panel active" id="tab-today">
+    <header>
+      <div class="eyebrow">Dosage Book</div>
+      <h1>Today's Doses</h1>
+      <div class="date-line" id="dateLine">—</div>
+      <div class="sync-line" id="syncLine">saved on this device</div>
+    </header>
+
+    <div class="meal-card">
+      <div class="pin">Constant · Every Meal</div>
+      <h2>Arsenicum Album <span style="font-size:.7em; color:var(--paper-dim); font-style:normal;">3</span></h2>
+      <div class="sub">2 drops, before each meal</div>
+      <div class="meal-ticks" id="mealTicks"></div>
+    </div>
+
+    <div id="slots"></div>
+
+    <footer>tap the seal to mark a dose taken · resets each morning</footer>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div class="tab-panel" id="tab-history">
+    <header style="text-align:left; margin-bottom:22px;">
+      <div class="eyebrow">Dosage Book</div>
+      <div class="page-title">Course Progress</div>
+      <div class="page-sub">13 Aug – 13 Oct 2026 · 2 month course</div>
+    </header>
+
+    <div class="course-card">
+      <h3>Overall</h3>
+      <div class="range" id="courseRange">—</div>
+      <div class="progress-track"><div class="progress-fill" id="courseFill" style="width:0%"></div></div>
+      <div class="progress-label"><span id="courseDaysLabel">day 0 of 0</span><span id="coursePctLabel">0%</span></div>
+    </div>
+
+    <div class="missed-card" id="missedCard">
+      <h3 id="missedTitle">Missed yesterday</h3>
+      <div class="range" id="missedRange">—</div>
+      <div class="missed-list" id="missedList"></div>
+    </div>
+
+    <div class="course-card">
+      <h3 style="margin-bottom:14px;">By medicine</h3>
+      <div id="medBars"></div>
+    </div>
+
+    <button class="btn full" id="exportBtn" style="margin-bottom:28px;">↓ Export as CSV</button>
+
+    <h3 style="font-family:'Fraunces',serif; font-size:1.1rem; margin-bottom:4px;">Daily log</h3>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div class="tab-panel" id="tab-settings">
+    <header style="text-align:left; margin-bottom:22px;">
+      <div class="eyebrow">Dosage Book</div>
+      <div class="page-title">Settings</div>
+      <div class="page-sub">on this device</div>
+    </header>
+
+    <div class="setting-row">
+      <div>
+        <div class="s-label">Dark theme</div>
+        <div class="s-sub">Switch between light and dark</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="themeToggle" checked>
+        <span class="switch-track"></span>
+      </label>
+    </div>
+
+    <div class="info-card">
+      COURSE START — 2026-08-13<br>
+      COURSE END — 2026-10-13<br>
+      LYCOPODIUM ANCHOR — 2026-08-15 (alternate mornings)<br>
+      AMMON CARB ANCHOR — 2026-08-13 (every 10 days)
+    </div>
+
+    <h3 style="font-family:'Fraunces',serif; font-size:1.1rem; margin:26px 0 12px;">Move data between devices</h3>
+    <div class="setting-row" style="flex-direction:column; align-items:stretch; gap:12px;">
+      <div>
+        <div class="s-label">Export</div>
+        <div class="s-sub">Download everything as a .json file</div>
+      </div>
+      <button class="btn full" id="exportJsonBtn">↓ Export data (.json)</button>
+    </div>
+    <div class="setting-row" style="flex-direction:column; align-items:stretch; gap:12px;">
+      <div>
+        <div class="s-label">Import</div>
+        <div class="s-sub">Load a .json file exported from another device — merges with what's already here</div>
+      </div>
+      <label class="btn full" style="cursor:pointer;">
+        ↑ Import data (.json)
+        <input type="file" id="importJsonInput" accept="application/json" style="display:none;">
+      </label>
+      <div class="sync-line" id="importStatus" style="text-align:center;"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <button class="nav-btn active" data-tab="today"><span class="dot"></span>Today</button>
+    <button class="nav-btn" data-tab="history"><span class="dot"></span>History</button>
+    <button class="nav-btn" data-tab="settings"><span class="dot"></span>Settings</button>
+  </div>
+</div>
+
+<script>
+const MEALS = ['Breakfast','Lunch','Dinner'];
+
+// Anchor dates for interval medicines (last confirmed dose)
+const LYCOPODIUM_ANCHOR = '2026-08-15'; // every alternate morning
+const AMMON_CARB_ANCHOR = '2026-08-13'; // every 10 days
+
+// Course window
+const COURSE_START = '2026-08-13';
+const COURSE_END   = '2026-10-13';
+
+const SLOT_ORDER = ['morning','noon','evening','night'];
+const SLOT_LABEL = {morning:'Morning', noon:'Noon', evening:'Evening', night:'Night'};
+
+// Master list of every trackable dose id -> display metadata
+const DOSE_META = {
+  'meal-breakfast': {name:'Arsenicum Album', potency:'3', dose:'2 drops', group:'Before every meal — Breakfast', daily:true},
+  'meal-lunch':     {name:'Arsenicum Album', potency:'3', dose:'2 drops', group:'Before every meal — Lunch', daily:true},
+  'meal-dinner':    {name:'Arsenicum Album', potency:'3', dose:'2 drops', group:'Before every meal — Dinner', daily:true},
+  'symphytum-morning': {name:'Symphytum', potency:'200', dose:'2 pills', group:'Morning', daily:true},
+  'lycopodium-morning': {name:'Lycopodium', potency:'200', dose:'2 pills', group:'Morning (alternate)', daily:false, rule:'lyco'},
+  'ammoncarb-morning': {name:'Ammon Carb', potency:'200', dose:'2 drops', group:'Morning (10-day)', daily:false, rule:'ammon'},
+  'colocynthis-noon': {name:'Colocynthis', potency:'200', dose:'2 pills', group:'Noon', daily:true},
+  'symphytum-evening': {name:'Symphytum', potency:'200', dose:'2 pills', group:'Evening', daily:true},
+  'colocynthis-night': {name:'Colocynthis', potency:'200', dose:'2 pills', group:'Night', daily:true},
+  'flower-night': {name:'Flower', potency:'200', dose:'2 pills', group:'Night', daily:true},
+};
+
+function toDateKey(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function todayStr(){ return toDateKey(new Date()); }
+function daysSinceDate(anchorStr, dateObj){
+  const anchor = new Date(anchorStr+'T00:00:00');
+  const mid = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+  return Math.round((mid - anchor) / 86400000);
+}
+function daysSince(anchorStr){ return daysSinceDate(anchorStr, new Date()); }
+
+function isDueOnDate(doseId, dateObj){
+  const meta = DOSE_META[doseId];
+  if(meta.daily) return true;
+  if(meta.rule === 'lyco'){
+    const d = daysSinceDate(LYCOPODIUM_ANCHOR, dateObj);
+    return d > 0 && d % 2 === 0;
+  }
+  if(meta.rule === 'ammon'){
+    const d = daysSinceDate(AMMON_CARB_ANCHOR, dateObj);
+    return d > 0 && d % 10 === 0;
+  }
+  return false;
+}
+
+const dLyco = daysSince(LYCOPODIUM_ANCHOR);
+const dAmmon = daysSince(AMMON_CARB_ANCHOR);
+function nextDueIn(days, interval){
+  const rem = interval - (days % interval);
+  return (days % interval === 0 && days>0) ? 0 : rem;
+}
+
+const MEDICINES = [
+  {id:'symphytum-morning', name:'Symphytum', potency:'200', slot:'morning', dose:'2 pills', due:true},
+  {id:'lycopodium-morning', name:'Lycopodium', potency:'200', slot:'morning', dose:'2 pills',
+    due: isDueOnDate('lycopodium-morning', new Date()),
+    note: isDueOnDate('lycopodium-morning', new Date()) ? 'due today · every alternate morning' : `every alternate morning · next in ${nextDueIn(dLyco,2)}d`},
+  {id:'ammoncarb-morning', name:'Ammon Carb', potency:'200', slot:'morning', dose:'2 drops',
+    due: isDueOnDate('ammoncarb-morning', new Date()),
+    note: isDueOnDate('ammoncarb-morning', new Date()) ? 'due today · every 10 days' : `every 10 days · next in ${nextDueIn(dAmmon,10)}d`},
+  {id:'colocynthis-noon', name:'Colocynthis', potency:'200', slot:'noon', dose:'2 pills', due:true},
+  {id:'symphytum-evening', name:'Symphytum', potency:'200', slot:'evening', dose:'2 pills', due:true},
+  {id:'colocynthis-night', name:'Colocynthis', potency:'200', slot:'night', dose:'2 pills', due:true},
+  {id:'flower-night', name:'Flower', potency:'200', slot:'night', dose:'2 pills', due:true},
+];
+
+const DATE_KEY = todayStr();
+
+// ---------- storage (backed by localStorage on this device) ----------
+const LS_PREFIX = 'dosagebook:day:';
+const LS_THEME = 'dosagebook:theme';
+
+let todayLog = {};       // { doseId: true/false } for today
+let ALL_LOGS = {};       // { 'YYYY-MM-DD': { doseId: true/false } }
+let CURRENT_THEME = 'dark';
+
+function setSync(text){
+  const el = document.getElementById('syncLine');
+  if(el) el.textContent = text;
+}
+
+function readDayLog(dateKey){
+  try{
+    const raw = localStorage.getItem(LS_PREFIX + dateKey);
+    return raw ? JSON.parse(raw) : {};
+  }catch(e){ return {}; }
+}
+function writeDayLog(dateKey, log){
+  try{ localStorage.setItem(LS_PREFIX + dateKey, JSON.stringify(log)); }
+  catch(e){ console.error(e); }
+}
+function loadAllLogsFromStorage(){
+  const out = {};
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(k && k.indexOf(LS_PREFIX) === 0){
+      const dateKey = k.slice(LS_PREFIX.length);
+      try{ out[dateKey] = JSON.parse(localStorage.getItem(k)); }catch(e){}
+    }
+  }
+  return out;
+}
+function refreshAllLogs(){
+  ALL_LOGS = loadAllLogsFromStorage();
+}
+
+// Seed pre-tracker days as fully taken, so they never show up as "missed".
+// Only fills a day if nothing has been saved for it yet — never overwrites real entries.
+function seedBackfilledDays(){
+  const SEED_DATES = ['2026-08-13', '2026-08-14'];
+  for(const dk of SEED_DATES){
+    const existing = readDayLog(dk);
+    if(Object.keys(existing).length > 0) continue; // already has real data, leave it alone
+    const dateObj = new Date(dk+'T00:00:00');
+    const dueIds = Object.keys(DOSE_META).filter(id => isDueOnDate(id, dateObj));
+    const log = {};
+    dueIds.forEach(id => log[id] = true);
+    writeDayLog(dk, log);
+  }
+}
+
+function loadThemeFromStorage(){
+  try{ return localStorage.getItem(LS_THEME) || 'dark'; }catch(e){ return 'dark'; }
+}
+function saveThemeToStorage(t){
+  try{ localStorage.setItem(LS_THEME, t); }catch(e){}
+}
+function applyTheme(t){
+  document.body.classList.toggle('light', t === 'light');
+  document.getElementById('themeToggle').checked = (t === 'dark');
+}
+
+// ---------- export / import ----------
+function exportJSON(){
+  refreshAllLogs();
+  const payload = {
+    app: 'dosage-book',
+    exportedAt: new Date().toISOString(),
+    theme: CURRENT_THEME,
+    days: ALL_LOGS
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `dosage-book-backup-${todayStr()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importJSONFile(file){
+  const statusEl = document.getElementById('importStatus');
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(reader.result);
+      const days = parsed.days || {};
+      let count = 0;
+      for(const dateKey in days){
+        const incoming = days[dateKey] || {};
+        const existing = readDayLog(dateKey);
+        // merge: incoming values win for matching doseIds, existing entries not present in incoming are kept
+        const merged = Object.assign({}, existing, incoming);
+        writeDayLog(dateKey, merged);
+        count++;
+      }
+      if(parsed.theme){
+        CURRENT_THEME = parsed.theme;
+        saveThemeToStorage(CURRENT_THEME);
+        applyTheme(CURRENT_THEME);
+      }
+      refreshAllLogs();
+      statusEl.textContent = `imported ${count} day(s) ✓`;
+      renderToday();
+      renderHistory();
+    }catch(e){
+      console.error(e);
+      statusEl.textContent = 'import failed — not a valid backup file';
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ---------- date/format helpers ----------
+function fmtDate(){
+  const d = new Date();
+  return d.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+}
+function fmtShort(dateKey){
+  const d = new Date(dateKey+'T00:00:00');
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+}
+function currentSlot(){
+  const h = new Date().getHours();
+  if(h < 11) return 'morning';
+  if(h < 15) return 'noon';
+  if(h < 19) return 'evening';
+  return 'night';
+}
+
+// ---------- TODAY tab ----------
+function renderToday(){
+  document.getElementById('dateLine').textContent = fmtDate();
+  todayLog = readDayLog(DATE_KEY);
+
+  const mealTicksEl = document.getElementById('mealTicks');
+  mealTicksEl.innerHTML = '';
+  for(const meal of MEALS){
+    const doseId = 'meal-'+meal.toLowerCase();
+    const done = !!todayLog[doseId];
+    const el = document.createElement('div');
+    el.className = 'meal-tick' + (done?' done':'');
+    el.innerHTML = `<div class="label">${meal}</div><div class="stamp">${done?'✓':'○'}</div>`;
+    el.addEventListener('click', ()=>{
+      const nowDone = !el.classList.contains('done');
+      todayLog[doseId] = nowDone;
+      writeDayLog(DATE_KEY, todayLog);
+      el.classList.toggle('done', nowDone);
+      el.querySelector('.stamp').textContent = nowDone ? '✓' : '○';
+      setSync('saved on this device ✓');
+    });
+    mealTicksEl.appendChild(el);
+  }
+
+  const slotsEl = document.getElementById('slots');
+  slotsEl.innerHTML = '';
+  const nowSlot = currentSlot();
+
+  for(const slot of SLOT_ORDER){
+    const meds = MEDICINES.filter(m => m.slot === slot);
+    if(meds.length === 0) continue;
+
+    const section = document.createElement('div');
+    section.className = 'slot-section';
+    section.innerHTML = `
+      <div class="slot-heading">
+        <h3>${SLOT_LABEL[slot]}</h3>
+        ${slot===nowSlot ? '<span class="now-badge">now</span>' : ''}
+      </div>
+    `;
+
+    for(const med of meds){
+      const done = med.due ? !!todayLog[med.id] : false;
+      const card = document.createElement('div');
+      card.className = 'med-card' + (done?' done':'') + (!med.due?' upcoming':'');
+      card.innerHTML = `
+        <div class="med-info">
+          <span class="med-name">${med.name}</span><span class="med-potency">${med.potency}</span>
+          <div class="med-dose">${med.dose}</div>
+          ${med.note ? `<div class="med-note">${med.note}</div>` : ''}
+        </div>
+        <button class="stamp-btn ${done?'done':''} ${!med.due?'upcoming':''}" ${!med.due?'disabled':''}>✓</button>
+      `;
+      const btn = card.querySelector('.stamp-btn');
+      if(med.due){
+        btn.addEventListener('click', ()=>{
+          const nowDone = !card.classList.contains('done');
+          todayLog[med.id] = nowDone;
+          writeDayLog(DATE_KEY, todayLog);
+          card.classList.toggle('done', nowDone);
+          btn.classList.toggle('done', nowDone);
+          setSync('saved on this device ✓');
+        });
+      }
+      section.appendChild(card);
+    }
+    slotsEl.appendChild(section);
+  }
+}
+
+// ---------- HISTORY tab ----------
+function eachDate(startKey, endKey){
+  const out = [];
+  let cur = new Date(startKey+'T00:00:00');
+  const end = new Date(endKey+'T00:00:00');
+  while(cur <= end){
+    out.push(toDateKey(cur));
+    cur.setDate(cur.getDate()+1);
+  }
+  return out;
+}
+
+async function renderHistory(){
+  refreshAllLogs(); // always read fresh from localStorage
+  const today = new Date();
+  const allDates = eachDate(COURSE_START, COURSE_END);
+  const elapsedDates = allDates.filter(dk => new Date(dk+'T00:00:00') <= today);
+
+  document.getElementById('courseRange').textContent = `${fmtShort(COURSE_START)} – ${fmtShort(COURSE_END)}, 2026`;
+  const totalDays = allDates.length;
+  const elapsedDays = elapsedDates.length;
+  const coursePct = Math.round((elapsedDays/totalDays)*100);
+  document.getElementById('courseFill').style.width = coursePct + '%';
+  document.getElementById('courseDaysLabel').textContent = `day ${elapsedDays} of ${totalDays}`;
+  document.getElementById('coursePctLabel').textContent = coursePct + '% elapsed';
+
+  const logs = ALL_LOGS;
+
+  // ---- missed doses for yesterday (or the most recent past course day) ----
+  renderMissed(logs, allDates, today);
+
+  // per-medicine totals across full course vs taken so far
+  const medStats = {}; // name -> {taken, expected}
+  for(const doseId in DOSE_META){
+    const meta = DOSE_META[doseId];
+    const label = meta.name + ' ' + meta.potency;
+    if(!medStats[label]) medStats[label] = {taken:0, expected:0};
+    for(const dk of allDates){
+      const dateObj = new Date(dk+'T00:00:00');
+      if(isDueOnDate(doseId, dateObj)){
+        medStats[label].expected += 1;
+        if(dateObj <= today && logs[dk] && logs[dk][doseId]) medStats[label].taken += 1;
+      }
+    }
+  }
+
+  const medBarsEl = document.getElementById('medBars');
+  medBarsEl.innerHTML = '';
+  const names = Object.keys(medStats).sort();
+  if(names.length === 0){
+    medBarsEl.innerHTML = '<div class="empty-note">No data yet</div>';
+  }
+  for(const name of names){
+    const s = medStats[name];
+    const pct = s.expected ? Math.round((s.taken/s.expected)*100) : 0;
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `
+      <div class="bar-row-top">
+        <span class="bar-row-name">${name}</span>
+        <span class="bar-row-count">${s.taken} / ${s.expected} · ${s.expected - s.taken} left</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+    `;
+    medBarsEl.appendChild(row);
+  }
+
+  // daily log list, most recent first — past days show every due dose (including misses),
+  // today shows only what's been ticked so far since the day isn't over yet
+  const historyListEl = document.getElementById('historyList');
+  historyListEl.innerHTML = '';
+  const relevantDates = elapsedDates.slice().sort().reverse();
+  let anyRows = false;
+  for(const dk of relevantDates){
+    const dayLog = logs[dk] || {};
+    const dateObj = new Date(dk+'T00:00:00');
+    const isPast = dk !== DATE_KEY;
+    let doseIds;
+    if(isPast){
+      doseIds = Object.keys(DOSE_META).filter(id => isDueOnDate(id, dateObj));
+    }else{
+      doseIds = Object.keys(dayLog).filter(id => DOSE_META[id]);
+    }
+    if(doseIds.length === 0) continue;
+    const chips = doseIds.map(id => {
+      const meta = DOSE_META[id];
+      const taken = !!dayLog[id];
+      const isMissed = isPast && !taken;
+      return `<span class="${isMissed ? 'missed-chip' : ('h-chip'+(taken?' taken':''))}">${meta.name} · ${meta.group}${isMissed ? ' · missed' : ''}</span>`;
+    }).join('');
+    anyRows = true;
+    const dayEl = document.createElement('div');
+    dayEl.className = 'history-day';
+    dayEl.innerHTML = `<div class="h-date">${fmtShort(dk)}, 2026${dk===DATE_KEY?' · today':''}</div><div class="h-meds">${chips}</div>`;
+    historyListEl.appendChild(dayEl);
+  }
+  if(!anyRows){
+    historyListEl.innerHTML = '<div class="empty-note">Nothing logged yet — ticks you make on Today will show up here.</div>';
+  }
+
+  // store logs for CSV export
+  window.__allLogs = logs;
+  window.__allDates = allDates;
+}
+
+function renderMissed(logs, allDates, today){
+  const card = document.getElementById('missedCard');
+  const titleEl = document.getElementById('missedTitle');
+  const rangeEl = document.getElementById('missedRange');
+  const listEl = document.getElementById('missedList');
+
+  // find the most recent fully-elapsed course day (yesterday, or earlier if course hasn't started)
+  const pastDates = allDates.filter(dk => dk < DATE_KEY).sort();
+  if(pastDates.length === 0){
+    titleEl.textContent = 'Missed doses';
+    rangeEl.textContent = 'course hasn\'t started yet';
+    listEl.innerHTML = '';
+    card.classList.add('clean');
+    return;
+  }
+  const target = pastDates[pastDates.length - 1]; // most recent past day
+  const dayLog = logs[target] || {};
+  const dateObj = new Date(target+'T00:00:00');
+  const dueIds = Object.keys(DOSE_META).filter(id => isDueOnDate(id, dateObj));
+  const missed = dueIds.filter(id => !dayLog[id]);
+
+  titleEl.textContent = target === toDateKey(new Date(Date.now()-86400000)) ? 'Missed yesterday' : 'Missed doses';
+  rangeEl.textContent = `${fmtShort(target)}, 2026`;
+
+  if(missed.length === 0){
+    listEl.innerHTML = '<span class="missed-chip" style="background:rgba(124,143,111,0.18); color:var(--sage); border-color:var(--sage);">All doses taken ✓</span>';
+    card.classList.add('clean');
+  }else{
+    card.classList.remove('clean');
+    listEl.innerHTML = missed.map(id => {
+      const meta = DOSE_META[id];
+      return `<span class="missed-chip">${meta.name} · ${meta.group}</span>`;
+    }).join('');
+  }
+}
+
+function exportCSV(){
+  const logs = window.__allLogs || {};
+  const rows = [['Date','Medicine','Potency','Dose','Group','Taken']];
+  const dates = Object.keys(logs).sort();
+  for(const dk of dates){
+    const dayLog = logs[dk];
+    for(const doseId in dayLog){
+      const meta = DOSE_META[doseId];
+      if(!meta) continue;
+      rows.push([dk, meta.name, meta.potency, meta.dose, meta.group, dayLog[doseId] ? 'Yes':'No']);
+    }
+  }
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'dosage-history.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ---------- tab nav ----------
+function switchTab(tab){
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  if(tab === 'history') renderHistory();
+}
+
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=> switchTab(btn.dataset.tab));
+});
+document.getElementById('exportBtn').addEventListener('click', exportCSV);
+document.getElementById('themeToggle').addEventListener('change', (e)=>{
+  const t = e.target.checked ? 'dark' : 'light';
+  CURRENT_THEME = t;
+  applyTheme(t);
+  saveThemeToStorage(t);
+});
+document.getElementById('exportJsonBtn').addEventListener('click', exportJSON);
+document.getElementById('importJsonInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(file) importJSONFile(file);
+  e.target.value = '';
+});
+
+// ---------- init ----------
+(function init(){
+  CURRENT_THEME = loadThemeFromStorage();
+  applyTheme(CURRENT_THEME);
+  seedBackfilledDays();
+  refreshAllLogs();
+  renderToday();
+})();
+</script>
+</body>
+</html>
